@@ -9,9 +9,9 @@ services:
     runtime: node
     plan: free
     # Frontend bauen (statische Dateien), dann Backend kompilieren.
-    buildCommand: npm run build
+    buildCommand: npm run build:frontend && npm run build:backend
     # Demo-Daten anlegen (idempotent), dann Server starten.
-    startCommand: npm start
+    startCommand: cd backend && node dist/db/seed.js && node dist/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
