@@ -1,0 +1,57 @@
+import bcrypt from 'bcryptjs';
+import { db } from '../config/db';
+
+const SALT_ROUNDS = 10;
+
+function upsertUser(username: string, password: string, fullName: string, role: 'cashier' | 'admin') {
+  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  if (exists) return;
+  const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);
+  db.prepare(
+    'INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)'
+  ).run(username, passwordHash, fullName, role);
+}
+
+upsertUser('kassierer', 'kassierer123', 'Anna Kassiererin', 'cashier');
+upsertUser('admin', 'admin123', 'Max Administrator', 'admin');
+
+const products: Array<[string, string, number, number, number]> = [
+  ['4006381333931', 'Tafel Schokolade Vollmilch', 129, 7.0, 50],
+  ['4000417025005', 'Gummibärchen 200g', 199, 7.0, 40],
+  ['4311501131312', 'Mineralwasser 1L', 89, 19.0, 100],
+  ['4008400122017', 'Spülmittel 500ml', 219, 19.0, 30],
+  ['4066600204577', 'Kugelschreiber Blau', 99, 19.0, 60],
+  ['4001724819312', 'Müsliriegel Schoko', 59, 7.0, 80],
+  ['4104420105537', 'Toastbrot 500g', 179, 7.0, 25],
+  ['4087600314423', 'Zahnpasta Frisch 75ml', 249, 19.0, 35],
+  ['4099100119307', 'Orangensaft 1L', 159, 7.0, 45],
+  ['4250017005006', 'Notizblock A5', 299, 19.0, 20],
+];
+
+const insertProduct = db.prepare(
+  `INSERT INTO products (barcode, name, price_cents, tax_rate, stock_qty)
+   VALUES (?, ?, ?, ?, ?)
+   ON CONFLICT(barcode) DO NOTHING`
+);
+
+for (const [barcode, name, priceCents, taxRate, stock] of products) {
+  insertProduct.run(barcode, name, priceCents, taxRate, stock);
+}
+
+const vouchers: Array<[string, number]> = [
+  ['GUTSCHEIN10', 1000],
+  ['GUTSCHEIN25', 2500],
+];
+
+const insertVoucher = db.prepare(
+  `INSERT INTO vouchers (code, value_cents) VALUES (?, ?) ON CONFLICT(code) DO NOTHING`
+);
+
+for (const [code, valueCents] of vouchers) {
+  insertVoucher.run(code, valueCents);
+}
+
+console.log('Seed complete:');
+console.log('  Login Kassierer -> username: kassierer, password: kassierer123');
+console.log('  Login Admin     -> username: admin,     password: admin123');
+console.log(`  ${products.length} Produkte, ${vouchers.length} Gutscheine angelegt.`);
