@@ -6,9 +6,7 @@
   "scripts": {
     "build:frontend": "cd frontend && npm install --include=dev && npm run build",
     "build:backend": "cd backend && npm install --include=dev && npm run build",
-    "build": "npm run build:frontend && npm run build:backend",
-    "prestart": "test -f backend/dist/server.js || npm run build",
-    "start": "cd backend && node dist/db/seed.js && node dist/server.js"
+    "build": "npm run build:frontend && npm run build:backend"
   },
   "engines": {
     "node": ">=20"
