@@ -75,6 +75,13 @@ cp .env.example .env
 npm run dev    # http://localhost:5173
 ```
 
+## Kostenlos hosten
+
+Die App lässt sich als einzelne kostenlose Web-Instanz deployen (Backend liefert
+das gebaute Frontend mit aus → eine öffentliche URL). Anleitung in
+[`DEPLOY.md`](./DEPLOY.md). Im Repo liegt dafür ein fertiges Render-Blueprint
+(`render.yaml`) für ein 1-Klick-Deployment.
+
 ## Projektstruktur
 
 ```
