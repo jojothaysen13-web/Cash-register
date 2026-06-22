@@ -4,6 +4,10 @@ Die App läuft als **eine** kostenlose Web-Instanz: Das Backend baut das Fronten
 mit und liefert es unter derselben URL aus. Du bekommst also genau eine
 öffentliche Adresse für Kasse, Admin-Bereich und API.
 
+> Der Start ist selbstheilend: Fehlt der Build, kompiliert ein `prestart`-Hook
+> Frontend und Backend automatisch — das Deployment funktioniert daher auch,
+> wenn der Hosting-Anbieter nur „install + start" ausführt.
+
 ## Schritt für Schritt
 
 1. Account bei <https://render.com> anlegen (kostenlos, GitHub-Login möglich).
