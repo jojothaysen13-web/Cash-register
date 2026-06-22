@@ -90,8 +90,8 @@ export function POSPage() {
 
   return (
     <div className="flex h-screen flex-col bg-slate-50">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-        <h1 className="text-lg font-semibold text-slate-800">Kasse</h1>
+      <header className="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-red-600 to-red-700 px-6 py-3">
+        <h1 className="text-lg font-bold text-white">Smithstoys Kasse</h1>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-slate-500">{user?.fullName}</span>
           <Link to="/returns" className="text-blue-600 hover:underline">

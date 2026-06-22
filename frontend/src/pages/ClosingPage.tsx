@@ -54,7 +54,10 @@ export function ClosingPage() {
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto max-w-lg">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-slate-800">Tagesabschluss — {businessDate}</h1>
+          <div>
+            <p className="text-sm font-medium text-red-600">Smithstoys</p>
+            <h1 className="text-xl font-semibold text-slate-800">Tagesabschluss — {businessDate}</h1>
+          </div>
           <Link to="/pos" className="text-sm text-blue-600 hover:underline">
             Zurück zur Kasse
           </Link>
