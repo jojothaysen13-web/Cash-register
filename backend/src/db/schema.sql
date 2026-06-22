@@ -77,3 +77,36 @@ CREATE TABLE IF NOT EXISTS day_closings (
   closed_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (cashier_id, business_date)
 );
+
+CREATE TABLE IF NOT EXISTS customers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_number TEXT NOT NULL UNIQUE,
+  full_name TEXT NOT NULL,
+  phone TEXT,
+  points_balance INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS returns (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sale_id INTEGER NOT NULL REFERENCES sales(id),
+  cashier_id INTEGER NOT NULL REFERENCES users(id),
+  total_refund_cents INTEGER NOT NULL,
+  refund_method TEXT NOT NULL CHECK (refund_method IN ('cash', 'card', 'voucher_credit')),
+  refund_reference TEXT,
+  business_date TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_returns_sale ON returns(sale_id);
+
+CREATE TABLE IF NOT EXISTS return_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  return_id INTEGER NOT NULL REFERENCES returns(id) ON DELETE CASCADE,
+  sale_item_id INTEGER NOT NULL REFERENCES sale_items(id),
+  product_id INTEGER NOT NULL REFERENCES products(id),
+  qty INTEGER NOT NULL CHECK (qty > 0),
+  refund_cents INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_return_items_return ON return_items(return_id);

@@ -10,7 +10,7 @@ import * as paymentsApi from '../api/payments';
 import * as salesApi from '../api/sales';
 import { ApiError } from '../api/client';
 import { formatCents } from '../utils/money';
-import type { CreateSaleResult } from '../api/sales';
+import type { CreateSaleResult, LoyaltyInput } from '../api/sales';
 
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
@@ -20,20 +20,35 @@ type Tab = 'cash' | 'card' | 'voucher';
 interface PaymentModalProps {
   totalCents: number;
   items: { productId: number; qty: number }[];
+  loyalty?: LoyaltyInput;
+  loyaltyDiscountCents?: number;
   onClose: () => void;
   onSuccess: (result: CreateSaleResult) => void;
 }
 
-export function PaymentModal({ totalCents, items, onClose, onSuccess }: PaymentModalProps) {
+export function PaymentModal({
+  totalCents,
+  items,
+  loyalty = {},
+  loyaltyDiscountCents = 0,
+  onClose,
+  onSuccess,
+}: PaymentModalProps) {
   const [tab, setTab] = useState<Tab>('cash');
+  const netCents = totalCents - loyaltyDiscountCents;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold">
-            Zahlung — {formatCents(totalCents)}
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold">Zahlung — {formatCents(netCents)}</h2>
+            {loyaltyDiscountCents > 0 && (
+              <p className="text-xs text-slate-500">
+                Summe {formatCents(totalCents)} − Treuerabatt {formatCents(loyaltyDiscountCents)}
+              </p>
+            )}
+          </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             ✕
           </button>
@@ -57,18 +72,33 @@ export function PaymentModal({ totalCents, items, onClose, onSuccess }: PaymentM
 
         <div className="p-6">
           {tab === 'cash' && (
-            <CashTab totalCents={totalCents} items={items} onSuccess={onSuccess} />
+            <CashTab totalCents={netCents} items={items} loyalty={loyalty} onSuccess={onSuccess} />
           )}
           {tab === 'card' &&
             (stripePromise ? (
               <Elements stripe={stripePromise}>
-                <RealCardTab totalCents={totalCents} items={items} onSuccess={onSuccess} />
+                <RealCardTab
+                  totalCents={netCents}
+                  items={items}
+                  loyalty={loyalty}
+                  onSuccess={onSuccess}
+                />
               </Elements>
             ) : (
-              <MockCardTab totalCents={totalCents} items={items} onSuccess={onSuccess} />
+              <MockCardTab
+                totalCents={netCents}
+                items={items}
+                loyalty={loyalty}
+                onSuccess={onSuccess}
+              />
             ))}
           {tab === 'voucher' && (
-            <VoucherTab totalCents={totalCents} items={items} onSuccess={onSuccess} />
+            <VoucherTab
+              totalCents={netCents}
+              items={items}
+              loyalty={loyalty}
+              onSuccess={onSuccess}
+            />
           )}
         </div>
       </div>
@@ -86,10 +116,11 @@ function ErrorBanner({ message }: { message: string | null }) {
 interface TabProps {
   totalCents: number;
   items: { productId: number; qty: number }[];
+  loyalty: LoyaltyInput;
   onSuccess: (result: CreateSaleResult) => void;
 }
 
-function CashTab({ totalCents, items, onSuccess }: TabProps) {
+function CashTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
   const [tendered, setTendered] = useState((totalCents / 100).toFixed(2));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -105,7 +136,7 @@ function CashTab({ totalCents, items, onSuccess }: TabProps) {
     }
     setSubmitting(true);
     try {
-      const result = await salesApi.createSale(items, { method: 'cash', tenderedCents });
+      const result = await salesApi.createSale(items, { method: 'cash', tenderedCents }, loyalty);
       onSuccess(result);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Fehler beim Abschließen des Verkaufs.');
@@ -144,7 +175,7 @@ function CashTab({ totalCents, items, onSuccess }: TabProps) {
   );
 }
 
-function RealCardTab({ totalCents, items, onSuccess }: TabProps) {
+function RealCardTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -173,10 +204,11 @@ function RealCardTab({ totalCents, items, onSuccess }: TabProps) {
         return;
       }
 
-      const result = await salesApi.createSale(items, {
-        method: 'card',
-        paymentIntentId: paymentIntent.id,
-      });
+      const result = await salesApi.createSale(
+        items,
+        { method: 'card', paymentIntentId: paymentIntent.id },
+        loyalty
+      );
       onSuccess(result);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Fehler bei der Kartenzahlung.');
@@ -202,7 +234,7 @@ function RealCardTab({ totalCents, items, onSuccess }: TabProps) {
   );
 }
 
-function MockCardTab({ totalCents, items, onSuccess }: TabProps) {
+function MockCardTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
   const [last4, setLast4] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -221,7 +253,11 @@ function MockCardTab({ totalCents, items, onSuccess }: TabProps) {
         setError('Karte abgelehnt (Testkarte endet auf 0002).');
         return;
       }
-      const result = await salesApi.createSale(items, { method: 'card', paymentIntentId });
+      const result = await salesApi.createSale(
+        items,
+        { method: 'card', paymentIntentId },
+        loyalty
+      );
       onSuccess(result);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Fehler bei der Kartenzahlung.');
@@ -262,7 +298,7 @@ function MockCardTab({ totalCents, items, onSuccess }: TabProps) {
   );
 }
 
-function VoucherTab({ totalCents, items, onSuccess }: TabProps) {
+function VoucherTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
   const [code, setCode] = useState('');
   const [checked, setChecked] = useState<{ code: string; valueCents: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -290,7 +326,11 @@ function VoucherTab({ totalCents, items, onSuccess }: TabProps) {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await salesApi.createSale(items, { method: 'voucher', code: checked.code });
+      const result = await salesApi.createSale(
+        items,
+        { method: 'voucher', code: checked.code },
+        loyalty
+      );
       onSuccess(result);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Fehler beim Einlösen des Gutscheins.');

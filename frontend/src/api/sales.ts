@@ -11,14 +11,24 @@ export interface CreateSaleResult {
   taxCents: number;
   changeCents: number | null;
   businessDate: string;
+  loyaltyDiscountCents: number;
+  netPayableCents: number;
+  pointsEarned: number;
+  customerId: number | null;
+}
+
+export interface LoyaltyInput {
+  customerId?: number;
+  redeemPoints?: number;
 }
 
 export function createSale(
   items: { productId: number; qty: number }[],
-  payment: SalePaymentInput
+  payment: SalePaymentInput,
+  loyalty: LoyaltyInput = {}
 ): Promise<CreateSaleResult> {
   return apiFetch<CreateSaleResult>('/api/sales', {
     method: 'POST',
-    body: JSON.stringify({ items, payment }),
+    body: JSON.stringify({ items, payment, ...loyalty }),
   });
 }

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../../middleware/auth';
-import { createSale } from './sales.service';
+import { createSale, getSaleById } from './sales.service';
 
 const router = Router();
 
@@ -18,13 +18,24 @@ const createSaleSchema = z.object({
     .array(z.object({ productId: z.number().int().positive(), qty: z.number().int().positive() }))
     .min(1),
   payment: paymentSchema,
+  customerId: z.number().int().positive().optional(),
+  redeemPoints: z.number().int().nonnegative().optional(),
 });
 
 router.post('/', async (req, res, next) => {
   try {
-    const { items, payment } = createSaleSchema.parse(req.body);
-    const result = await createSale(req.user!.userId, items, payment);
+    const { items, payment, customerId, redeemPoints } = createSaleSchema.parse(req.body);
+    const result = await createSale(req.user!.userId, items, payment, { customerId, redeemPoints });
     res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/:id', (req, res, next) => {
+  try {
+    const saleId = z.coerce.number().int().positive().parse(req.params.id);
+    res.json(getSaleById(saleId));
   } catch (err) {
     next(err);
   }

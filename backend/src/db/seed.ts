@@ -51,7 +51,22 @@ for (const [code, valueCents] of vouchers) {
   insertVoucher.run(code, valueCents);
 }
 
+const customers: Array<[string, string, string | null, number]> = [
+  ['1001', 'Erika Musterfrau', '0170-1234567', 35],
+  ['1002', 'Hans Beispiel', null, 0],
+];
+
+const insertCustomer = db.prepare(
+  `INSERT INTO customers (card_number, full_name, phone, points_balance)
+   VALUES (?, ?, ?, ?)
+   ON CONFLICT(card_number) DO NOTHING`
+);
+
+for (const [cardNumber, fullName, phone, points] of customers) {
+  insertCustomer.run(cardNumber, fullName, phone, points);
+}
+
 console.log('Seed complete:');
 console.log('  Login Kassierer -> username: kassierer, password: kassierer123');
 console.log('  Login Admin     -> username: admin,     password: admin123');
-console.log(`  ${products.length} Produkte, ${vouchers.length} Gutscheine angelegt.`);
+console.log(`  ${products.length} Produkte, ${vouchers.length} Gutscheine, ${customers.length} Kunden angelegt.`);
