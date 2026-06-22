@@ -25,9 +25,18 @@ export function Cart() {
           </tr>
         </thead>
         <tbody>
-          {lines.map((line) => (
+          {lines.map((line) => {
+            const atStockLimit = line.qty >= line.product.stock_qty;
+            return (
             <tr key={line.product.id} className="border-t border-slate-100">
-              <td className="px-3 py-2">{line.product.name}</td>
+              <td className="px-3 py-2">
+                {line.product.name}
+                {atStockLimit && (
+                  <span className="ml-2 text-xs font-medium text-amber-600">
+                    max. Bestand
+                  </span>
+                )}
+              </td>
               <td className="px-3 py-2 text-right">
                 <div className="inline-flex items-center gap-2">
                   <button
@@ -40,7 +49,8 @@ export function Cart() {
                   <span className="w-8 text-center">{line.qty}</span>
                   <button
                     onClick={() => setQty(line.product.id, line.qty + 1)}
-                    className="h-7 w-7 rounded bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    disabled={atStockLimit}
+                    className="h-7 w-7 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Menge erhöhen"
                   >
                     +
@@ -62,7 +72,8 @@ export function Cart() {
                 </button>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

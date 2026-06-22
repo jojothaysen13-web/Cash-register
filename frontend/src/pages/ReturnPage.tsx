@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as returnsApi from '../api/returns';
 import { ApiError } from '../api/client';
+import { BrandMark } from '../components/BrandMark';
 import { formatCents } from '../utils/money';
 import type { RefundMethod, ReturnResult, SaleDetail } from '../types';
 
@@ -81,6 +82,7 @@ export function ReturnPage() {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto max-w-2xl">
+        <BrandMark size="sm" tag="Rückgabe" className="mb-4" />
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-slate-800">Rückgabe / Umtausch</h1>
           <Link to="/pos" className="text-sm text-blue-600 hover:underline">
@@ -184,7 +186,7 @@ export function ReturnPage() {
                     disabled={m === 'card' && !hasCardPayment}
                     className={`rounded-lg px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
                       refundMethod === m
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-brand-600 text-white'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
@@ -201,7 +203,7 @@ export function ReturnPage() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || refundPreviewCents === 0}
-                className="mt-4 w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="mt-4 w-full rounded-lg bg-brand-600 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 {submitting ? 'Wird verarbeitet…' : 'Rückgabe abschließen'}
               </button>

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { BrandMark } from '../components/BrandMark';
 import { Cart } from '../components/Cart';
 import { PaymentModal } from '../components/PaymentModal';
 import * as productsApi from '../api/products';
@@ -21,6 +22,7 @@ export function POSPage() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const searchSeq = useRef(0);
   const [showPayment, setShowPayment] = useState(false);
   const [receipt, setReceipt] = useState<CreateSaleResult | null>(null);
 
@@ -29,11 +31,22 @@ export function POSPage() {
   const [redeemPoints, setRedeemPoints] = useState('0');
   const [loyaltyError, setLoyaltyError] = useState<string | null>(null);
 
+  // Gemeinsamer Pfad für Scan und manuelle Auswahl: deckelt am Bestand und gibt Feedback.
+  function tryAddProduct(product: Product): boolean {
+    const inCart = useCartStore.getState().lines.find((l) => l.product.id === product.id)?.qty ?? 0;
+    if (inCart >= product.stock_qty) {
+      setScanError(`Bestand erschöpft: nur ${product.stock_qty}× „${product.name}" verfügbar.`);
+      return false;
+    }
+    addProduct(product);
+    return true;
+  }
+
   async function handleScan(barcode: string) {
     setScanError(null);
     try {
       const { product } = await productsApi.findByBarcode(barcode);
-      addProduct(product);
+      tryAddProduct(product);
     } catch (err) {
       setScanError(err instanceof ApiError ? err.message : 'Artikel nicht gefunden.');
     }
@@ -58,19 +71,25 @@ export function POSPage() {
     setLoyaltyError(null);
   }
 
-  async function handleSearch(query: string) {
-    setSearchQuery(query);
-    if (query.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    try {
-      const { products } = await productsApi.searchProducts(query.trim());
-      setSearchResults(products);
-    } catch {
-      setSearchResults([]);
-    }
-  }
+  // Suche entkoppelt vom Tastendruck: 250 ms Debounce vermeidet einen Request
+  // pro Zeichen, der Sequenzzähler verwirft veraltete Antworten (Race Condition).
+  useEffect(() => {
+    const query = searchQuery.trim();
+    const seq = ++searchSeq.current;
+    const timer = setTimeout(async () => {
+      if (query.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+      try {
+        const { products } = await productsApi.searchProducts(query);
+        if (seq === searchSeq.current) setSearchResults(products);
+      } catch {
+        if (seq === searchSeq.current) setSearchResults([]);
+      }
+    }, query.length < 2 ? 0 : 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   function handlePaymentSuccess(result: CreateSaleResult) {
     setShowPayment(false);
@@ -91,7 +110,7 @@ export function POSPage() {
   return (
     <div className="flex h-screen flex-col bg-slate-50">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-        <h1 className="text-lg font-semibold text-slate-800">Kasse</h1>
+        <BrandMark tag="Kasse" />
         <div className="flex items-center gap-4 text-sm">
           <span className="text-slate-500">{user?.fullName}</span>
           <Link to="/returns" className="text-blue-600 hover:underline">
@@ -123,7 +142,7 @@ export function POSPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Artikel suchen (manuell)"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
@@ -133,7 +152,7 @@ export function POSPage() {
                   <li key={p.id}>
                     <button
                       onClick={() => {
-                        addProduct(p);
+                        if (tryAddProduct(p)) setScanError(null);
                         setSearchQuery('');
                         setSearchResults([]);
                       }}
@@ -231,7 +250,7 @@ export function POSPage() {
             <button
               onClick={() => setShowPayment(true)}
               disabled={lines.length === 0}
-              className="mt-4 w-full rounded-lg bg-blue-600 py-3 text-lg font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+              className="mt-4 w-full rounded-lg bg-brand-600 py-3 text-lg font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
             >
               Zahlung starten
             </button>

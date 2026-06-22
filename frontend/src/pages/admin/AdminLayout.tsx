@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { BrandMark } from '../../components/BrandMark';
 
 const navItems = [
   { to: '/admin', label: 'Übersicht', end: true },
@@ -18,8 +19,8 @@ export function AdminLayout() {
     <div className="flex h-screen bg-slate-50">
       <aside className="flex w-56 flex-col border-r border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-4">
-          <h1 className="text-lg font-semibold text-slate-800">Admin</h1>
-          <p className="text-sm text-slate-500">{user?.fullName}</p>
+          <BrandMark size="sm" tag="Admin" />
+          <p className="mt-1 text-sm text-slate-500">{user?.fullName}</p>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-3">
           {navItems.map((item) => (
