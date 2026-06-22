@@ -32,7 +32,10 @@ export function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-xl bg-white p-8 shadow-sm ring-1 ring-slate-200"
       >
-        <h1 className="mb-6 text-center text-2xl font-semibold text-slate-800">Kassensystem</h1>
+        <h1 className="mb-6 text-center text-2xl font-semibold text-slate-800">
+          <span className="block text-red-600">Smithstoys</span>
+          <span className="text-lg text-slate-600">Kassensystem</span>
+        </h1>
 
         {error && (
           <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
