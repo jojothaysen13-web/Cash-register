@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+// Dev: getrennter Vite-Server -> auf das lokale Backend zeigen.
+// Production-Build: Frontend wird vom Backend unter derselben Origin ausgeliefert
+// -> leerer Prefix, Requests gehen relativ an /api/... . Per VITE_API_URL überschreibbar.
+const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:4000' : '');
 
 export class ApiError extends Error {
   status: number;

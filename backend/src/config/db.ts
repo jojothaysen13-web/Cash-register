@@ -9,7 +9,18 @@ export const db = new Database(env.dbFile);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-const schema = fs.readFileSync(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf-8');
+// schema.sql wird von tsc nicht nach dist/ kopiert. Wir suchen daher an mehreren
+// Stellen, damit es sowohl im Dev-Modus (tsx, src/) als auch im Production-Build
+// (node dist/, mit Fallback auf src/) gefunden wird.
+const schemaCandidates = [
+  path.join(__dirname, '..', 'db', 'schema.sql'),
+  path.resolve(__dirname, '..', '..', 'src', 'db', 'schema.sql'),
+];
+const schemaPath = schemaCandidates.find((candidate) => fs.existsSync(candidate));
+if (!schemaPath) {
+  throw new Error(`schema.sql nicht gefunden (gesucht: ${schemaCandidates.join(', ')})`);
+}
+const schema = fs.readFileSync(schemaPath, 'utf-8');
 db.exec(schema);
 
 function ensureColumn(table: string, column: string, ddl: string) {
