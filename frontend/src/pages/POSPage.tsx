@@ -4,12 +4,13 @@ import { BarcodeScanner } from '../components/BarcodeScanner';
 import { Cart } from '../components/Cart';
 import { PaymentModal } from '../components/PaymentModal';
 import * as productsApi from '../api/products';
+import * as customersApi from '../api/customers';
 import { ApiError } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import { formatCents } from '../utils/money';
 import type { CreateSaleResult } from '../api/sales';
-import type { Product } from '../types';
+import type { Customer, Product } from '../types';
 
 export function POSPage() {
   const user = useAuthStore((s) => s.user);
@@ -23,6 +24,11 @@ export function POSPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [receipt, setReceipt] = useState<CreateSaleResult | null>(null);
 
+  const [cardNumber, setCardNumber] = useState('');
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [redeemPoints, setRedeemPoints] = useState('0');
+  const [loyaltyError, setLoyaltyError] = useState<string | null>(null);
+
   async function handleScan(barcode: string) {
     setScanError(null);
     try {
@@ -31,6 +37,25 @@ export function POSPage() {
     } catch (err) {
       setScanError(err instanceof ApiError ? err.message : 'Artikel nicht gefunden.');
     }
+  }
+
+  async function handleCustomerLookup() {
+    setLoyaltyError(null);
+    try {
+      const { customer } = await customersApi.findByCardNumber(cardNumber.trim());
+      setCustomer(customer);
+      setRedeemPoints('0');
+    } catch (err) {
+      setCustomer(null);
+      setLoyaltyError(err instanceof ApiError ? err.message : 'Kunde nicht gefunden.');
+    }
+  }
+
+  function clearCustomer() {
+    setCustomer(null);
+    setCardNumber('');
+    setRedeemPoints('0');
+    setLoyaltyError(null);
   }
 
   async function handleSearch(query: string) {
@@ -51,10 +76,17 @@ export function POSPage() {
     setShowPayment(false);
     setReceipt(result);
     clear();
+    clearCustomer();
   }
 
   const total = totalCents();
   const items = lines.map((l) => ({ productId: l.product.id, qty: l.qty }));
+  const maxRedeemable = customer ? Math.min(customer.points_balance, total) : 0;
+  const redeemPointsNum = Math.max(
+    0,
+    Math.min(maxRedeemable, parseInt(redeemPoints || '0', 10) || 0)
+  );
+  const loyaltyDiscountCents = redeemPointsNum;
 
   return (
     <div className="flex h-screen flex-col bg-slate-50">
@@ -62,6 +94,9 @@ export function POSPage() {
         <h1 className="text-lg font-semibold text-slate-800">Kasse</h1>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-slate-500">{user?.fullName}</span>
+          <Link to="/returns" className="text-blue-600 hover:underline">
+            Rückgabe
+          </Link>
           <Link to="/closing" className="text-blue-600 hover:underline">
             Tagesabschluss
           </Link>
@@ -113,6 +148,62 @@ export function POSPage() {
             )}
           </div>
 
+          <div className="rounded-lg border border-slate-200 bg-white p-3">
+            <p className="mb-2 text-sm font-medium text-slate-700">Kundenkarte</p>
+            {!customer ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCustomerLookup()}
+                  placeholder="Kartennummer"
+                  disabled={showPayment}
+                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50"
+                />
+                <button
+                  onClick={handleCustomerLookup}
+                  disabled={showPayment}
+                  className="rounded-lg bg-slate-100 px-3 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>{customer.full_name}</span>
+                  <button
+                    onClick={clearCustomer}
+                    disabled={showPayment}
+                    className="text-xs text-slate-400 hover:text-slate-600 disabled:opacity-50"
+                  >
+                    Entfernen
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500">{customer.points_balance} Punkte verfügbar</p>
+                <label className="mt-2 block text-xs font-medium text-slate-700">
+                  Punkte einlösen (max. {maxRedeemable})
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max={maxRedeemable}
+                  value={redeemPoints}
+                  onChange={(e) => setRedeemPoints(e.target.value)}
+                  disabled={showPayment}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50"
+                />
+                {loyaltyDiscountCents > 0 && (
+                  <p className="mt-1 text-xs text-green-700">
+                    Rabatt: {formatCents(loyaltyDiscountCents)}
+                  </p>
+                )}
+              </div>
+            )}
+            {loyaltyError && <p className="mt-2 text-xs text-red-600">{loyaltyError}</p>}
+          </div>
+
           {receipt && (
             <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
               <p className="font-medium">Verkauf #{receipt.saleId} abgeschlossen</p>
@@ -152,6 +243,8 @@ export function POSPage() {
         <PaymentModal
           totalCents={total}
           items={items}
+          loyalty={{ customerId: customer?.id, redeemPoints: redeemPointsNum }}
+          loyaltyDiscountCents={loyaltyDiscountCents}
           onClose={() => setShowPayment(false)}
           onSuccess={handlePaymentSuccess}
         />

@@ -2,8 +2,15 @@ import { Navigate, Route, BrowserRouter, Routes } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { POSPage } from './pages/POSPage';
 import { ClosingPage } from './pages/ClosingPage';
-import { AdminPlaceholderPage } from './pages/AdminPlaceholderPage';
+import { ReturnPage } from './pages/ReturnPage';
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { AdminProductsPage } from './pages/admin/AdminProductsPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
+import { AdminReportsPage } from './pages/admin/AdminReportsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute } from './components/AdminRoute';
 import { useAuthStore } from './store/authStore';
 
 function HomeRedirect() {
@@ -35,13 +42,27 @@ function App() {
           }
         />
         <Route
-          path="/admin"
+          path="/returns"
           element={
             <ProtectedRoute>
-              <AdminPlaceholderPage />
+              <ReturnPage />
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="products" element={<AdminProductsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="customers" element={<AdminCustomersPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

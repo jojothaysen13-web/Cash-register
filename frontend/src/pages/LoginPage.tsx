@@ -17,7 +17,8 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       await login(username, password);
-      navigate('/pos');
+      const user = useAuthStore.getState().user;
+      navigate(user?.role === 'admin' ? '/admin' : '/pos');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Anmeldung fehlgeschlagen.');
     } finally {
