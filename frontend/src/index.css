@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* Smithstoys-Markenpalette — verspielt in Rot (Primär) mit Blau als Akzent.
+   Über @theme registriert, damit Utilities wie bg-brand-600 / text-brand-600 verfügbar sind. */
+@theme {
+  --color-brand-50: #fff1f2;
+  --color-brand-100: #ffe0e2;
+  --color-brand-200: #ffc6ca;
+  --color-brand-300: #ff9da4;
+  --color-brand-400: #ff646f;
+  --color-brand-500: #fb3445;
+  --color-brand-600: #e0182d;
+  --color-brand-700: #bd1023;
+  --color-brand-800: #9c1322;
+  --color-brand-900: #821622;
+
+  --color-sunshine: #ffce3a;
+}
+
 :root {
   color-scheme: light;
 }

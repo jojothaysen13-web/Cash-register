@@ -9,7 +9,7 @@ import { useState } from 'react';
 import * as paymentsApi from '../api/payments';
 import * as salesApi from '../api/sales';
 import { ApiError } from '../api/client';
-import { formatCents } from '../utils/money';
+import { formatCents, parseAmountToCents } from '../utils/money';
 import type { CreateSaleResult, LoyaltyInput } from '../api/sales';
 
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
@@ -61,7 +61,7 @@ export function PaymentModal({
               onClick={() => setTab(t)}
               className={`flex-1 py-3 text-sm font-medium ${
                 tab === t
-                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  ? 'border-b-2 border-brand-600 text-brand-700'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -125,8 +125,8 @@ function CashTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const tenderedCents = Math.round(parseFloat(tendered || '0') * 100);
-  const change = tenderedCents - totalCents;
+  const tenderedCents = parseAmountToCents(tendered);
+  const change = (Number.isNaN(tenderedCents) ? 0 : tenderedCents) - totalCents;
 
   async function handleSubmit() {
     setError(null);
@@ -150,9 +150,8 @@ function CashTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
       <ErrorBanner message={error} />
       <label className="block text-sm font-medium text-slate-700">Gegeben (€)</label>
       <input
-        type="number"
-        step="0.01"
-        min="0"
+        type="text"
+        inputMode="decimal"
         value={tendered}
         onChange={(e) => setTendered(e.target.value)}
         className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -167,7 +166,7 @@ function CashTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
       <button
         onClick={handleSubmit}
         disabled={submitting}
-        className="mt-6 w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="mt-6 w-full rounded-lg bg-brand-600 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
       >
         {submitting ? 'Wird verarbeitet…' : 'Zahlung abschließen'}
       </button>
@@ -226,7 +225,7 @@ function RealCardTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
       <button
         onClick={handleSubmit}
         disabled={submitting || !stripe}
-        className="mt-6 w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="mt-6 w-full rounded-lg bg-brand-600 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
       >
         {submitting ? 'Wird verarbeitet…' : `${formatCents(totalCents)} bezahlen`}
       </button>
@@ -290,7 +289,7 @@ function MockCardTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
       <button
         onClick={handleSubmit}
         disabled={submitting}
-        className="mt-6 w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="mt-6 w-full rounded-lg bg-brand-600 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
       >
         {submitting ? 'Wird verarbeitet…' : `${formatCents(totalCents)} bezahlen (Test)`}
       </button>
@@ -370,7 +369,7 @@ function VoucherTab({ totalCents, items, loyalty, onSuccess }: TabProps) {
       <button
         onClick={handleSubmit}
         disabled={!checked || submitting}
-        className="mt-6 w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="mt-6 w-full rounded-lg bg-brand-600 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
       >
         {submitting ? 'Wird verarbeitet…' : 'Mit Gutschein bezahlen'}
       </button>

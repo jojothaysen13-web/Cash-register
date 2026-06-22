@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as closingApi from '../api/closing';
 import { ApiError } from '../api/client';
-import { formatCents } from '../utils/money';
+import { BrandMark } from '../components/BrandMark';
+import { formatCents, parseAmountToCents } from '../utils/money';
 import type { ClosingSummary } from '../types';
 
 const methodLabels: Record<string, string> = {
@@ -29,7 +30,7 @@ export function ClosingPage() {
 
   async function handleClose() {
     if (!summary) return;
-    const countedCents = Math.round(parseFloat(counted || '0') * 100);
+    const countedCents = parseAmountToCents(counted);
     if (Number.isNaN(countedCents) || countedCents < 0) {
       setError('Bitte einen gültigen Betrag eingeben.');
       return;
@@ -47,17 +48,16 @@ export function ClosingPage() {
     }
   }
 
-  const countedCents = Math.round(parseFloat(counted || '0') * 100);
-  const liveDifference = summary ? countedCents - summary.expectedCashCents : 0;
+  const countedCents = parseAmountToCents(counted);
+  const liveDifference =
+    summary && !Number.isNaN(countedCents) ? countedCents - summary.expectedCashCents : 0;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto max-w-lg">
+        <BrandMark size="sm" tag="Tagesabschluss" className="mb-4" />
         <div className="mb-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-red-600">Smithstoys</p>
-            <h1 className="text-xl font-semibold text-slate-800">Tagesabschluss — {businessDate}</h1>
-          </div>
+          <h1 className="text-xl font-semibold text-slate-800">{businessDate}</h1>
           <Link to="/pos" className="text-sm text-blue-600 hover:underline">
             Zurück zur Kasse
           </Link>
@@ -108,9 +108,8 @@ export function ClosingPage() {
                     Gezählter Bargeldbestand (€)
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={counted}
                     onChange={(e) => setCounted(e.target.value)}
                     className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -125,7 +124,7 @@ export function ClosingPage() {
                   <button
                     onClick={handleClose}
                     disabled={submitting}
-                    className="mt-4 w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    className="mt-4 w-full rounded-lg bg-brand-600 py-2.5 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                   >
                     {submitting ? 'Wird abgeschlossen…' : 'Tag abschließen'}
                   </button>

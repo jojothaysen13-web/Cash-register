@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { BrandMark } from '../components/BrandMark';
 import { ApiError } from '../api/client';
 
 export function LoginPage() {
@@ -32,10 +33,10 @@ export function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-xl bg-white p-8 shadow-sm ring-1 ring-slate-200"
       >
-        <h1 className="mb-6 text-center text-2xl font-semibold text-slate-800">
-          <span className="block text-red-600">Smithstoys</span>
-          <span className="text-lg text-slate-600">Kassensystem</span>
-        </h1>
+        <div className="mb-6 flex flex-col items-center gap-1">
+          <BrandMark size="lg" />
+          <p className="text-sm text-slate-500">Kassensystem — Anmeldung</p>
+        </div>
 
         {error && (
           <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
@@ -63,7 +64,7 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="w-full rounded-lg bg-brand-600 py-2.5 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
         >
           {submitting ? 'Anmelden…' : 'Anmelden'}
         </button>
