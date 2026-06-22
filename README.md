@@ -36,6 +36,24 @@ Bewusste Vereinfachungen:
   Erfolg), damit die App ohne echtes Stripe-Konto lauffähig bleibt.
 - **Split-Payment, Mobile-Payments, Multi-Laden**: laut Phasenplan erst ab Phase 3.
 
+## Screenshots
+
+Kassierer-Ansicht (Phase 1 & 2):
+
+| Anmeldung | Kasse (Warenkorb + Kundenkarte) | Bargeldzahlung |
+| --- | --- | --- |
+| ![Login](screenshots/01-login.png) | ![Kasse mit Warenkorb](screenshots/03-pos-warenkorb.png) | ![Bargeldzahlung](screenshots/04-zahlung-bargeld.png) |
+
+| Rückgabe / Umtausch | Tagesabschluss |
+| --- | --- |
+| ![Rückgabe](screenshots/05-rueckgabe.png) | ![Tagesabschluss](screenshots/06-tagesabschluss.png) |
+
+Admin-Bereich (Phase 2):
+
+| Übersicht | Produktverwaltung |
+| --- | --- |
+| ![Admin-Übersicht](screenshots/07-admin-uebersicht.png) | ![Produkte](screenshots/08-admin-produkte.png) |
+
 ## Tech-Stack
 
 - Frontend: React 18 + TypeScript + Vite + TailwindCSS 4
