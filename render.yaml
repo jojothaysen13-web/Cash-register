@@ -1,24 +1,18 @@
 # Render.com Blueprint – kostenloses 1-Klick-Deployment.
-# Eine einzige Web-Instanz: das Backend baut & liefert das Frontend gleich mit aus,
-# es gibt also genau eine öffentliche URL für Kasse + Admin + API.
+# Baut per Dockerfile: ein Container, eine oeffentliche URL fuer Kasse + Admin + API.
 #
-# Deployen: https://dashboard.render.com -> "New" -> "Blueprint" -> dieses Repo wählen.
+# Deployen: https://dashboard.render.com -> "New" -> "Blueprint" -> dieses Repo waehlen -> "Apply".
 services:
   - type: web
     name: cash-register
-    runtime: node
+    runtime: docker
     plan: free
-    # Frontend bauen (statische Dateien), dann Backend kompilieren.
-    buildCommand: npm run build
-    # Demo-Daten anlegen (idempotent), dann Server starten.
-    startCommand: npm start
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
-      - key: NODE_ENV
-        value: production
       # Sicheres JWT-Secret automatisch generieren.
       - key: JWT_SECRET
         generateValue: true
-      # Optional: echtes Stripe aktivieren, sonst läuft der Test-/Mock-Modus.
+      # Optional: echtes Stripe aktivieren, sonst laeuft der Test-/Mock-Modus.
       - key: STRIPE_SECRET_KEY
         sync: false
