@@ -37,15 +37,6 @@ export async function setCachedProduct(barcode: string, json: string): Promise<v
   }
 }
 
-export async function invalidateCachedProduct(barcode: string): Promise<void> {
-  if (!client || client.status !== 'ready') return;
-  try {
-    await client.del(`product:barcode:${barcode}`);
-  } catch {
-    // ignore
-  }
-}
-
 const SCAN_DEBOUNCE_MS = 400;
 
 export async function isDuplicateScan(cashierId: number, barcode: string): Promise<boolean> {

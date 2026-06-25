@@ -19,9 +19,10 @@ router.post('/', (req, res, next) => {
       password: z.string().min(6),
       fullName: z.string().min(1),
       role: z.enum(['cashier', 'admin']),
+      locationId: z.number().int().positive().nullable().optional(),
     });
-    const { username, password, fullName, role } = schema.parse(req.body);
-    res.status(201).json({ user: createUser(username, password, fullName, role) });
+    const { username, password, fullName, role, locationId } = schema.parse(req.body);
+    res.status(201).json({ user: createUser(username, password, fullName, role, locationId ?? null) });
   } catch (err) {
     next(err);
   }

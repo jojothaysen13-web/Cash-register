@@ -15,9 +15,10 @@ router.get('/', (req, res, next) => {
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .default(new Date().toISOString().slice(0, 10)),
+      locationId: z.coerce.number().int().positive().optional(),
     });
-    const { range, date } = schema.parse(req.query);
-    res.json(getReport(range, date));
+    const { range, date, locationId } = schema.parse(req.query);
+    res.json(getReport(range, date, locationId ?? null));
   } catch (err) {
     next(err);
   }

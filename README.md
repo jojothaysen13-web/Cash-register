@@ -6,7 +6,7 @@ Ein Kassensystem (POS) mit zwei Bereichen: einem Kassierer-Interface (Barcode-Sc
 Warenkorb, Zahlung, Tagesabschluss, Rückgaben) und einem Admin-Bereich (Produkte,
 Benutzer, Kunden, Berichte).
 
-## Status: Phase 2
+## Status: Phase 3
 
 Umgesetzt (Phase 1):
 - Login (JWT, Rollen `cashier`/`admin`)
@@ -27,14 +27,28 @@ Umgesetzt (Phase 2):
   (Anlegen/Deaktivieren, Schutz gegen Selbst-Deaktivierung), Kundenverwaltung und
   Verkaufsberichten (Tag/Woche/Monat, nach Zahlungsart, Topseller)
 
+Umgesetzt (Phase 3):
+- **Multi-Laden**: mehrere Standorte, vollständig getrennt — jeder Standort hat einen
+  eigenen Lagerbestand pro Produkt (`product_stock`), eigene Tagesabschlüsse und isolierte
+  Verkaufsdaten. Kassierer sind fest einem Standort zugeordnet, Admins sehen alle Standorte
+  und können sie im Admin-Bereich verwalten (`/admin/locations`). Berichte lassen sich nach
+  Standort filtern und zeigen zusätzlich einen Standortvergleich.
+- **Split-Payment**: ein Verkauf kann auf mehrere Zahlarten aufgeteilt werden (z. B. teils
+  Bargeld, teils Karte) — die Kasse summiert die Teilbeträge und prüft, dass sie den
+  Gesamtbetrag exakt decken.
+- **Mobile-Payments**: neue Zahlart „Mobile/Wallet“ neben Bargeld, Karte und Gutschein,
+  mit eigenem Tab im Zahlungsdialog. Läuft im selben deterministischen Testmodus wie die
+  Kartenzahlung (ohne Stripe-Schlüssel) oder optional über echte Stripe-PaymentIntents.
+
 Bewusste Vereinfachungen:
 - **SQLite** statt PostgreSQL (dateibasiert, kein Serverbetrieb nötig)
 - **Produktsuche per SQL** statt Elasticsearch (für den Katalogumfang einer Einzelkasse ausreichend)
-- **Karte**: echte Stripe-PaymentIntent-Integration (inkl. Refunds), die aktiv wird, sobald
-  `STRIPE_SECRET_KEY` / `VITE_STRIPE_PUBLISHABLE_KEY` gesetzt sind. Ohne Schlüssel läuft
-  ein deterministischer Testmodus (Testkarte endet auf `0002` → Ablehnung, alles andere →
-  Erfolg), damit die App ohne echtes Stripe-Konto lauffähig bleibt.
-- **Split-Payment, Mobile-Payments, Multi-Laden**: laut Phasenplan erst ab Phase 3.
+- **Karte & Mobile/Wallet**: echte Stripe-PaymentIntent-Integration (inkl. Refunds), die
+  aktiv wird, sobald `STRIPE_SECRET_KEY` / `VITE_STRIPE_PUBLISHABLE_KEY` gesetzt sind. Ohne
+  Schlüssel läuft ein deterministischer Testmodus (Testkarte endet auf `0002` →
+  Ablehnung, alles andere → Erfolg), damit die App ohne echtes Stripe-Konto lauffähig bleibt.
+- **Multi-Laden**: Standorte werden flach verwaltet (kein Filialleiter-Rollenkonzept,
+  keine Standort-zu-Standort-Umbuchungen von Bestand) — passend zum Übungsumfang.
 
 ## Screenshots
 
@@ -75,8 +89,9 @@ npm run dev    # http://localhost:4000
 ```
 
 Demo-Zugänge nach dem Seed:
-- Kassierer: `kassierer` / `kassierer123`
-- Admin: `admin` / `admin123`
+- Kassierer (Filiale Mitte): `kassierer` / `kassierer123`
+- Kassierer (Filiale Nord): `kassierer2` / `kassierer123`
+- Admin (alle Standorte): `admin` / `admin123`
 - Kundenkarten (für Loyalität): `1001` (Erika Musterfrau, 35 Punkte), `1002` (Hans Beispiel, 0 Punkte)
 - Gutscheine: `GUTSCHEIN10` (10 €), `GUTSCHEIN25` (25 €)
 
@@ -108,12 +123,13 @@ backend/
     config/     DB, Redis, Env-Konfiguration
     db/         SQLite-Schema + Seed-Skript
     middleware/ Auth (JWT), Error-Handling
-    modules/    auth, products, sales, payments, closing, returns, customers, users, reports
+    modules/    auth, products, sales, payments, closing, returns, customers, users,
+                reports, locations
 frontend/
   src/
     api/        Fetch-Client pro Domäne
     store/      Zustand (Auth, Warenkorb)
     components/ BarcodeScanner, Cart, PaymentModal, ProtectedRoute, AdminRoute
     pages/      Login, POS (Kasse), Tagesabschluss, Rückgabe
-    pages/admin/ Layout, Übersicht, Produkte, Benutzer, Kunden, Berichte
+    pages/admin/ Layout, Übersicht, Produkte, Benutzer, Kunden, Standorte, Berichte
 ```

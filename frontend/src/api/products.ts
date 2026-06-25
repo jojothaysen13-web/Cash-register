@@ -9,8 +9,9 @@ export function searchProducts(query: string): Promise<{ products: Product[] }> 
   return apiFetch<{ products: Product[] }>(`/api/products?q=${encodeURIComponent(query)}`);
 }
 
-export function listAllProducts(): Promise<{ products: Product[] }> {
-  return apiFetch<{ products: Product[] }>('/api/products/all');
+export function listAllProducts(locationId?: number): Promise<{ products: Product[] }> {
+  const query = locationId ? `?locationId=${locationId}` : '';
+  return apiFetch<{ products: Product[] }>(`/api/products/all${query}`);
 }
 
 export interface CreateProductInput {
@@ -19,6 +20,7 @@ export interface CreateProductInput {
   priceCents: number;
   taxRate: number;
   stockQty: number;
+  locationId?: number;
 }
 
 export function createProduct(input: CreateProductInput): Promise<{ product: Product }> {
@@ -34,6 +36,7 @@ export interface UpdateProductInput {
   taxRate?: number;
   stockQty?: number;
   active?: boolean;
+  locationId?: number;
 }
 
 export function updateProduct(id: number, input: UpdateProductInput): Promise<{ product: Product }> {

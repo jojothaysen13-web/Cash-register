@@ -35,6 +35,7 @@ export interface ReportSummary {
   range: ReportRange;
   from: string;
   to: string;
+  locationId: number | null;
   totalCents: number;
   taxCents: number;
   saleCount: number;
@@ -42,51 +43,73 @@ export interface ReportSummary {
   topProducts: { name: string; qty: number; revenueCents: number }[];
   returnsCents: number;
   returnsCount: number;
+  byLocation: { locationId: number; locationName: string; totalCents: number; saleCount: number }[];
 }
 
-export function getReport(range: ReportRange, referenceDate: string): ReportSummary {
+export function getReport(
+  range: ReportRange,
+  referenceDate: string,
+  locationId: number | null = null
+): ReportSummary {
   const { from, to } = dateRangeFor(range, referenceDate);
+  const salesLocationFilter = locationId != null ? 'AND s.location_id = ?' : '';
+  const bareLocationFilter = locationId != null ? 'AND location_id = ?' : '';
+  const locationParams = locationId != null ? [locationId] : [];
 
   const totals = db
     .prepare(
       `SELECT COALESCE(SUM(total_cents),0) as totalCents, COALESCE(SUM(tax_cents),0) as taxCents, COUNT(*) as saleCount
-       FROM sales WHERE business_date BETWEEN ? AND ? AND status = 'completed'`
+       FROM sales s WHERE business_date BETWEEN ? AND ? AND status = 'completed' ${salesLocationFilter}`
     )
-    .get(from, to) as { totalCents: number; taxCents: number; saleCount: number };
+    .get(from, to, ...locationParams) as { totalCents: number; taxCents: number; saleCount: number };
 
   const byMethod = db
     .prepare(
       `SELECT sp.method as method, SUM(sp.amount_cents) as amountCents, COUNT(*) as count
        FROM sale_payments sp
        JOIN sales s ON s.id = sp.sale_id
-       WHERE s.business_date BETWEEN ? AND ? AND s.status = 'completed'
+       WHERE s.business_date BETWEEN ? AND ? AND s.status = 'completed' ${salesLocationFilter}
        GROUP BY sp.method`
     )
-    .all(from, to) as { method: string; amountCents: number; count: number }[];
+    .all(from, to, ...locationParams) as { method: string; amountCents: number; count: number }[];
 
   const topProducts = db
     .prepare(
       `SELECT si.name_snapshot as name, SUM(si.qty) as qty, SUM(si.line_total_cents) as revenueCents
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
-       WHERE s.business_date BETWEEN ? AND ? AND s.status = 'completed'
+       WHERE s.business_date BETWEEN ? AND ? AND s.status = 'completed' ${salesLocationFilter}
        GROUP BY si.product_id
        ORDER BY revenueCents DESC
        LIMIT 10`
     )
-    .all(from, to) as { name: string; qty: number; revenueCents: number }[];
+    .all(from, to, ...locationParams) as { name: string; qty: number; revenueCents: number }[];
 
   const returns = db
     .prepare(
       `SELECT COALESCE(SUM(total_refund_cents),0) as returnsCents, COUNT(*) as returnsCount
-       FROM returns WHERE business_date BETWEEN ? AND ?`
+       FROM returns WHERE business_date BETWEEN ? AND ? ${bareLocationFilter}`
     )
-    .get(from, to) as { returnsCents: number; returnsCount: number };
+    .get(from, to, ...locationParams) as { returnsCents: number; returnsCount: number };
+
+  // Standort-Vergleich: unabhängig von einem evtl. gesetzten Standortfilter, damit
+  // Admins immer alle Standorte nebeneinander sehen können.
+  const byLocation = db
+    .prepare(
+      `SELECT l.id as locationId, l.name as locationName,
+              COALESCE(SUM(s.total_cents),0) as totalCents, COUNT(s.id) as saleCount
+       FROM locations l
+       LEFT JOIN sales s ON s.location_id = l.id AND s.business_date BETWEEN ? AND ? AND s.status = 'completed'
+       GROUP BY l.id
+       ORDER BY l.name`
+    )
+    .all(from, to) as { locationId: number; locationName: string; totalCents: number; saleCount: number }[];
 
   return {
     range,
     from,
     to,
+    locationId,
     totalCents: totals.totalCents,
     taxCents: totals.taxCents,
     saleCount: totals.saleCount,
@@ -94,5 +117,6 @@ export function getReport(range: ReportRange, referenceDate: string): ReportSumm
     topProducts,
     returnsCents: returns.returnsCents,
     returnsCount: returns.returnsCount,
+    byLocation,
   };
 }

@@ -1,3 +1,11 @@
+CREATE TABLE IF NOT EXISTS locations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT NOT NULL UNIQUE,
@@ -20,6 +28,18 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
+
+-- Lagerbestand pro Standort. products.stock_qty bleibt als ungenutztes Altfeld
+-- bestehen (additive Migration); die tatsächliche Bestandsführung läuft je
+-- Standort über diese Tabelle.
+CREATE TABLE IF NOT EXISTS product_stock (
+  product_id INTEGER NOT NULL REFERENCES products(id),
+  location_id INTEGER NOT NULL REFERENCES locations(id),
+  qty_on_hand INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (product_id, location_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_stock_location ON product_stock(location_id);
 
 CREATE TABLE IF NOT EXISTS vouchers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
 CREATE TABLE IF NOT EXISTS sale_payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   sale_id INTEGER NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-  method TEXT NOT NULL CHECK (method IN ('cash', 'card', 'voucher')),
+  method TEXT NOT NULL CHECK (method IN ('cash', 'card', 'voucher', 'mobile')),
   amount_cents INTEGER NOT NULL,
   tendered_cents INTEGER,
   change_cents INTEGER,

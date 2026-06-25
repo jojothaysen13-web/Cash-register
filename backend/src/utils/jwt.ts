@@ -5,6 +5,7 @@ export interface AuthTokenPayload {
   userId: number;
   username: string;
   role: 'cashier' | 'admin';
+  locationId: number | null;
 }
 
 export function signToken(payload: AuthTokenPayload): string {

@@ -3,6 +3,8 @@ export interface User {
   username: string;
   fullName: string;
   role: 'cashier' | 'admin';
+  locationId: number | null;
+  locationName: string | null;
 }
 
 export interface Product {
@@ -20,7 +22,15 @@ export interface CartLine {
   qty: number;
 }
 
-export type PaymentMethod = 'cash' | 'card' | 'voucher';
+export type PaymentMethod = 'cash' | 'card' | 'voucher' | 'mobile';
+
+export interface Location {
+  id: number;
+  name: string;
+  code: string;
+  active: number;
+  created_at: string;
+}
 
 export interface ClosingSummary {
   businessDate: string;
@@ -46,6 +56,8 @@ export interface UserSummary {
   role: 'cashier' | 'admin';
   active: number;
   created_at: string;
+  location_id: number | null;
+  location_name: string | null;
 }
 
 export interface SaleItemDetail {
@@ -61,6 +73,7 @@ export interface SaleItemDetail {
 export interface SaleDetail {
   id: number;
   cashier_id: number;
+  location_id: number | null;
   total_cents: number;
   tax_cents: number;
   business_date: string;
@@ -86,6 +99,7 @@ export interface ReportSummary {
   range: ReportRange;
   from: string;
   to: string;
+  locationId: number | null;
   totalCents: number;
   taxCents: number;
   saleCount: number;
@@ -93,4 +107,5 @@ export interface ReportSummary {
   topProducts: { name: string; qty: number; revenueCents: number }[];
   returnsCents: number;
   returnsCount: number;
+  byLocation: { locationId: number; locationName: string; totalCents: number; saleCount: number }[];
 }

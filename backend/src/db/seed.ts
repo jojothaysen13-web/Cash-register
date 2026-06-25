@@ -3,17 +3,38 @@ import { db } from '../config/db';
 
 const SALT_ROUNDS = 10;
 
-function upsertUser(username: string, password: string, fullName: string, role: 'cashier' | 'admin') {
+function upsertLocation(name: string, code: string): number {
+  const existing = db.prepare('SELECT id FROM locations WHERE code = ?').get(code) as
+    | { id: number }
+    | undefined;
+  if (existing) return existing.id;
+  const { lastInsertRowid } = db
+    .prepare('INSERT INTO locations (name, code) VALUES (?, ?)')
+    .run(name, code);
+  return Number(lastInsertRowid);
+}
+
+const locationFiliale1 = upsertLocation('Filiale Mitte', 'FIL-1');
+const locationFiliale2 = upsertLocation('Filiale Nord', 'FIL-2');
+
+function upsertUser(
+  username: string,
+  password: string,
+  fullName: string,
+  role: 'cashier' | 'admin',
+  locationId: number | null
+) {
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (exists) return;
   const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);
   db.prepare(
-    'INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)'
-  ).run(username, passwordHash, fullName, role);
+    'INSERT INTO users (username, password_hash, full_name, role, location_id) VALUES (?, ?, ?, ?, ?)'
+  ).run(username, passwordHash, fullName, role, locationId);
 }
 
-upsertUser('kassierer', 'kassierer123', 'Anna Kassiererin', 'cashier');
-upsertUser('admin', 'admin123', 'Max Administrator', 'admin');
+upsertUser('kassierer', 'kassierer123', 'Anna Kassiererin', 'cashier', locationFiliale1);
+upsertUser('kassierer2', 'kassierer123', 'Tom Thalberg', 'cashier', locationFiliale2);
+upsertUser('admin', 'admin123', 'Max Administrator', 'admin', null);
 
 const products: Array<[string, string, number, number, number]> = [
   ['4006381333931', 'Tafel Schokolade Vollmilch', 129, 7.0, 50],
@@ -34,8 +55,21 @@ const insertProduct = db.prepare(
    ON CONFLICT(barcode) DO NOTHING`
 );
 
+const findProductId = db.prepare('SELECT id FROM products WHERE barcode = ?');
+
+const upsertStock = db.prepare(
+  `INSERT INTO product_stock (product_id, location_id, qty_on_hand) VALUES (?, ?, ?)
+   ON CONFLICT(product_id, location_id) DO NOTHING`
+);
+
 for (const [barcode, name, priceCents, taxRate, stock] of products) {
   insertProduct.run(barcode, name, priceCents, taxRate, stock);
+  const product = findProductId.get(barcode) as { id: number } | undefined;
+  if (!product) continue;
+  // Filiale Mitte bekommt den vollen Demo-Bestand, Filiale Nord eine kleinere
+  // eigene Menge — so lässt sich "vollständig getrennter" Standortbestand sofort sehen.
+  upsertStock.run(product.id, locationFiliale1, stock);
+  upsertStock.run(product.id, locationFiliale2, Math.max(0, Math.round(stock * 0.4)));
 }
 
 const vouchers: Array<[string, number]> = [
@@ -67,6 +101,9 @@ for (const [cardNumber, fullName, phone, points] of customers) {
 }
 
 console.log('Seed complete:');
-console.log('  Login Kassierer -> username: kassierer, password: kassierer123');
-console.log('  Login Admin     -> username: admin,     password: admin123');
-console.log(`  ${products.length} Produkte, ${vouchers.length} Gutscheine, ${customers.length} Kunden angelegt.`);
+console.log('  Login Kassierer (Filiale Mitte) -> username: kassierer,  password: kassierer123');
+console.log('  Login Kassierer (Filiale Nord)  -> username: kassierer2, password: kassierer123');
+console.log('  Login Admin                     -> username: admin,      password: admin123');
+console.log(
+  `  2 Standorte, ${products.length} Produkte (je Standort eigener Bestand), ${vouchers.length} Gutscheine, ${customers.length} Kunden angelegt.`
+);

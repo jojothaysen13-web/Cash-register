@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import * as reportsApi from '../../api/reports';
+import * as locationsApi from '../../api/locations';
 import { ApiError } from '../../api/client';
 import { formatCents } from '../../utils/money';
-import type { ReportRange, ReportSummary } from '../../types';
+import type { Location, ReportRange, ReportSummary } from '../../types';
 
 const methodLabels: Record<string, string> = {
   cash: 'Bargeld',
   card: 'Karte',
+  mobile: 'Mobile/Wallet',
   voucher: 'Gutschein',
 };
 
@@ -19,15 +21,21 @@ const rangeLabels: Record<ReportRange, string> = {
 export function AdminReportsPage() {
   const [range, setRange] = useState<ReportRange>('day');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [locationId, setLocationId] = useState('');
+  const [locations, setLocations] = useState<Location[]>([]);
   const [report, setReport] = useState<ReportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     reportsApi
-      .getReport(range, date)
+      .getReport(range, date, locationId ? Number(locationId) : undefined)
       .then(setReport)
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Fehler beim Laden.'));
-  }, [range, date]);
+  }, [range, date, locationId]);
+
+  useEffect(() => {
+    locationsApi.listLocations().then(({ locations }) => setLocations(locations));
+  }, []);
 
   return (
     <div>
@@ -53,6 +61,18 @@ export function AdminReportsPage() {
           onChange={(e) => setDate(e.target.value)}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
+        <select
+          value={locationId}
+          onChange={(e) => setLocationId(e.target.value)}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="">Alle Standorte</option>
+          {locations.map((loc) => (
+            <option key={loc.id} value={loc.id}>
+              {loc.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (
@@ -108,6 +128,23 @@ export function AdminReportsPage() {
                 )}
               </ul>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h3 className="mb-3 text-sm font-medium text-slate-500">Vergleich nach Standort</h3>
+            <ul className="divide-y divide-slate-100">
+              {report.byLocation.map((l) => (
+                <li key={l.locationId} className="flex justify-between py-2 text-sm">
+                  <span>
+                    {l.locationName} ({l.saleCount}×)
+                  </span>
+                  <span className="font-medium">{formatCents(l.totalCents)}</span>
+                </li>
+              ))}
+              {report.byLocation.length === 0 && (
+                <li className="py-2 text-sm text-slate-400">Keine Standorte.</li>
+              )}
+            </ul>
           </div>
         </>
       )}

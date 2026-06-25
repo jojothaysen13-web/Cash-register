@@ -8,6 +8,7 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
+import { AdminLocationsPage } from './pages/admin/AdminLocationsPage';
 import { AdminReportsPage } from './pages/admin/AdminReportsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
@@ -61,6 +62,7 @@ function App() {
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="customers" element={<AdminCustomersPage />} />
+          <Route path="locations" element={<AdminLocationsPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
         </Route>
       </Routes>

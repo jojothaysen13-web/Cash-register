@@ -2,7 +2,8 @@ import { apiFetch } from './client';
 
 export type SalePaymentInput =
   | { method: 'cash'; tenderedCents: number }
-  | { method: 'card'; paymentIntentId: string }
+  | { method: 'card'; paymentIntentId: string; amountCents: number }
+  | { method: 'mobile'; paymentIntentId: string; amountCents: number }
   | { method: 'voucher'; code: string };
 
 export interface CreateSaleResult {
@@ -24,11 +25,11 @@ export interface LoyaltyInput {
 
 export function createSale(
   items: { productId: number; qty: number }[],
-  payment: SalePaymentInput,
+  payments: SalePaymentInput[],
   loyalty: LoyaltyInput = {}
 ): Promise<CreateSaleResult> {
   return apiFetch<CreateSaleResult>('/api/sales', {
     method: 'POST',
-    body: JSON.stringify({ items, payment, ...loyalty }),
+    body: JSON.stringify({ items, payments, ...loyalty }),
   });
 }

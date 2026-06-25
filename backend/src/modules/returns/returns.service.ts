@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { db } from '../../config/db';
 import { env } from '../../config/env';
 import { HttpError } from '../../middleware/errorHandler';
-import { invalidateCachedProduct } from '../../config/redis';
+import { adjustStock } from '../products/products.service';
 
 const stripe = env.stripeSecretKey ? new Stripe(env.stripeSecretKey) : null;
 
@@ -29,12 +29,16 @@ function randomVoucherCode(): string {
 
 export async function createReturn(
   cashierId: number,
+  locationId: number | null,
   saleId: number,
   items: ReturnItemInput[],
   refundMethod: RefundMethod
 ) {
   if (items.length === 0) {
     throw new HttpError(400, 'Keine Artikel zur Rückgabe ausgewählt.');
+  }
+  if (!locationId) {
+    throw new HttpError(400, 'Kein Standort zugewiesen — Rückgaben benötigen einen Standort.');
   }
 
   const sale = db.prepare('SELECT id FROM sales WHERE id = ?').get(saleId) as
@@ -86,20 +90,20 @@ export async function createReturn(
   const businessDate = new Date().toISOString().slice(0, 10);
 
   const insertReturn = db.prepare(
-    `INSERT INTO returns (sale_id, cashier_id, total_refund_cents, refund_method, refund_reference, business_date)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO returns (sale_id, cashier_id, location_id, total_refund_cents, refund_method, refund_reference, business_date)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
   );
   const insertReturnItem = db.prepare(
     `INSERT INTO return_items (return_id, sale_item_id, product_id, qty, refund_cents) VALUES (?, ?, ?, ?, ?)`
   );
   const bumpReturned = db.prepare('UPDATE sale_items SET returned_qty = returned_qty + ? WHERE id = ?');
-  const restock = db.prepare('UPDATE products SET stock_qty = stock_qty + ? WHERE id = ?');
   const insertVoucherCredit = db.prepare('INSERT INTO vouchers (code, value_cents) VALUES (?, ?)');
 
   const returnId = db.transaction(() => {
     const { lastInsertRowid } = insertReturn.run(
       saleId,
       cashierId,
+      locationId,
       totalRefundCents,
       refundMethod,
       refundReference,
@@ -108,20 +112,15 @@ export async function createReturn(
     for (const item of resolved) {
       insertReturnItem.run(lastInsertRowid, item.row.id, item.row.product_id, item.qty, item.refundCents);
       bumpReturned.run(item.qty, item.row.id);
-      restock.run(item.qty, item.row.product_id);
+      // Der zurückgegebene Artikel liegt physisch wieder am Standort der Rückgabe,
+      // nicht notwendigerweise am ursprünglichen Verkaufsstandort.
+      adjustStock(item.row.product_id, locationId, item.qty);
     }
     if (refundMethod === 'voucher_credit' && refundReference) {
       insertVoucherCredit.run(refundReference, totalRefundCents);
     }
     return lastInsertRowid;
   })();
-
-  for (const item of resolved) {
-    const product = db.prepare('SELECT barcode FROM products WHERE id = ?').get(item.row.product_id) as
-      | { barcode: string }
-      | undefined;
-    if (product) await invalidateCachedProduct(product.barcode);
-  }
 
   return { returnId, totalRefundCents, refundMethod, refundReference, businessDate };
 }
