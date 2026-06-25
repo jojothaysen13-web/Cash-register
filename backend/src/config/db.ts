@@ -35,3 +35,37 @@ ensureColumn('sales', 'points_earned', 'points_earned INTEGER NOT NULL DEFAULT 0
 ensureColumn('sales', 'points_redeemed', 'points_redeemed INTEGER NOT NULL DEFAULT 0');
 ensureColumn('sales', 'loyalty_discount_cents', 'loyalty_discount_cents INTEGER NOT NULL DEFAULT 0');
 ensureColumn('sale_items', 'returned_qty', 'returned_qty INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users', 'location_id', 'location_id INTEGER REFERENCES locations(id)');
+ensureColumn('sales', 'location_id', 'location_id INTEGER REFERENCES locations(id)');
+ensureColumn('day_closings', 'location_id', 'location_id INTEGER REFERENCES locations(id)');
+ensureColumn('returns', 'location_id', 'location_id INTEGER REFERENCES locations(id)');
+
+// SQLite kann CHECK-Constraints nicht per ALTER TABLE ändern. Für Bestandsdatenbanken
+// (vor Phase 3 angelegt) wird sale_payments daher einmalig neu aufgebaut, damit
+// method = 'mobile' (neue Zahlart Mobile/Wallet) zulässig ist. Bei frischen DBs greift
+// bereits die CHECK-Klausel aus schema.sql, sodass dieser Block dann ein No-Op ist.
+const salePaymentsTableSql = (
+  db.prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'sale_payments'`).get() as
+    | { sql: string }
+    | undefined
+)?.sql;
+if (salePaymentsTableSql && !salePaymentsTableSql.includes("'mobile'")) {
+  db.exec(`
+    BEGIN TRANSACTION;
+    ALTER TABLE sale_payments RENAME TO sale_payments_old;
+    CREATE TABLE sale_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sale_id INTEGER NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+      method TEXT NOT NULL CHECK (method IN ('cash', 'card', 'voucher', 'mobile')),
+      amount_cents INTEGER NOT NULL,
+      tendered_cents INTEGER,
+      change_cents INTEGER,
+      reference TEXT
+    );
+    INSERT INTO sale_payments (id, sale_id, method, amount_cents, tendered_cents, change_cents, reference)
+      SELECT id, sale_id, method, amount_cents, tendered_cents, change_cents, reference FROM sale_payments_old;
+    DROP TABLE sale_payments_old;
+    CREATE INDEX IF NOT EXISTS idx_sale_payments_sale ON sale_payments(sale_id);
+    COMMIT;
+  `);
+}

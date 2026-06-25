@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './modules/auth/auth.routes';
 import closingRoutes from './modules/closing/closing.routes';
 import customersRoutes from './modules/customers/customers.routes';
+import locationsRoutes from './modules/locations/locations.routes';
 import paymentsRoutes from './modules/payments/payments.routes';
 import productsRoutes from './modules/products/products.routes';
 import reportsRoutes from './modules/reports/reports.routes';
@@ -31,6 +32,7 @@ app.use('/api/customers', customersRoutes);
 app.use('/api/returns', returnsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/locations', locationsRoutes);
 
 // Im Production-Build liefert das Backend das gebaute Frontend gleich mit aus,
 // damit Frontend + API unter einer einzigen URL laufen (eine kostenlose Instanz).

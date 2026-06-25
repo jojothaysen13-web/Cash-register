@@ -7,6 +7,7 @@ const navItems = [
   { to: '/admin/products', label: 'Produkte', end: false },
   { to: '/admin/users', label: 'Benutzer', end: false },
   { to: '/admin/customers', label: 'Kunden', end: false },
+  { to: '/admin/locations', label: 'Standorte', end: false },
   { to: '/admin/reports', label: 'Berichte', end: false },
 ];
 

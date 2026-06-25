@@ -36,7 +36,12 @@ export function getSummary(cashierId: number, businessDate: string): ClosingSumm
   };
 }
 
-export function closeDay(cashierId: number, businessDate: string, countedCashCents: number) {
+export function closeDay(
+  cashierId: number,
+  locationId: number | null,
+  businessDate: string,
+  countedCashCents: number
+) {
   const existing = db
     .prepare('SELECT id FROM day_closings WHERE cashier_id = ? AND business_date = ?')
     .get(cashierId, businessDate);
@@ -48,9 +53,9 @@ export function closeDay(cashierId: number, businessDate: string, countedCashCen
   const differenceCents = countedCashCents - expectedCashCents;
 
   db.prepare(
-    `INSERT INTO day_closings (cashier_id, business_date, expected_cash_cents, counted_cash_cents, difference_cents)
-     VALUES (?, ?, ?, ?, ?)`
-  ).run(cashierId, businessDate, expectedCashCents, countedCashCents, differenceCents);
+    `INSERT INTO day_closings (cashier_id, location_id, business_date, expected_cash_cents, counted_cash_cents, difference_cents)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(cashierId, locationId, businessDate, expectedCashCents, countedCashCents, differenceCents);
 
   return { expectedCashCents, countedCashCents, differenceCents };
 }

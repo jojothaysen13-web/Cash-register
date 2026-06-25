@@ -10,6 +10,7 @@ export function createUser(input: {
   password: string;
   fullName: string;
   role: 'cashier' | 'admin';
+  locationId?: number | null;
 }): Promise<{ user: UserSummary }> {
   return apiFetch<{ user: UserSummary }>('/api/users', {
     method: 'POST',

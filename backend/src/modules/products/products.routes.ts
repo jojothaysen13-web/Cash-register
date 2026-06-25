@@ -16,16 +16,22 @@ router.use(requireAuth);
 
 router.get('/', (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-  res.json({ products: query ? searchByName(query) : listActive() });
+  const locationId = req.user!.locationId;
+  res.json({ products: query ? searchByName(query, locationId) : listActive(locationId) });
 });
 
-router.get('/all', requireRole('admin'), (_req, res) => {
-  res.json({ products: listAll() });
+router.get('/all', requireRole('admin'), (req, res, next) => {
+  try {
+    const locationId = z.coerce.number().int().positive().optional().parse(req.query.locationId) ?? null;
+    res.json({ products: listAll(locationId) });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get('/barcode/:code', async (req, res, next) => {
   try {
-    const product = await findByBarcode(req.params.code);
+    const product = await findByBarcode(req.params.code, req.user!.locationId);
     res.json({ product });
   } catch (err) {
     next(err);
@@ -40,6 +46,7 @@ router.post('/', requireRole('admin'), (req, res, next) => {
       priceCents: z.number().int().nonnegative(),
       taxRate: z.number().nonnegative(),
       stockQty: z.number().int().nonnegative(),
+      locationId: z.number().int().positive().optional(),
     });
     const input = schema.parse(req.body);
     res.status(201).json({ product: createProduct(input) });
@@ -56,6 +63,7 @@ router.patch('/:id', requireRole('admin'), (req, res, next) => {
       priceCents: z.number().int().nonnegative().optional(),
       taxRate: z.number().nonnegative().optional(),
       stockQty: z.number().int().nonnegative().optional(),
+      locationId: z.number().int().positive().optional(),
       active: z.boolean().optional(),
     });
     const input = schema.parse(req.body);

@@ -25,7 +25,7 @@ router.post('/', (req, res, next) => {
       countedCashCents: z.number().int().nonnegative(),
     });
     const { businessDate, countedCashCents } = schema.parse(req.body);
-    const result = closeDay(req.user!.userId, businessDate, countedCashCents);
+    const result = closeDay(req.user!.userId, req.user!.locationId, businessDate, countedCashCents);
     res.status(201).json(result);
   } catch (err) {
     next(err);

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import * as usersApi from '../../api/users';
+import * as locationsApi from '../../api/locations';
 import { ApiError } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
-import type { UserSummary } from '../../types';
+import type { Location, UserSummary } from '../../types';
 
 const roleLabels: Record<string, string> = {
   admin: 'Admin',
@@ -12,6 +13,7 @@ const roleLabels: Record<string, string> = {
 export function AdminUsersPage() {
   const currentUser = useAuthStore((s) => s.user);
   const [users, setUsers] = useState<UserSummary[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
@@ -23,6 +25,9 @@ export function AdminUsersPage() {
   }
 
   useEffect(load, []);
+  useEffect(() => {
+    locationsApi.listLocations().then(({ locations }) => setLocations(locations));
+  }, []);
 
   async function toggleActive(u: UserSummary) {
     setError(null);
@@ -52,6 +57,7 @@ export function AdminUsersPage() {
 
       {showCreate && (
         <CreateUserForm
+          locations={locations}
           onCreated={() => {
             setShowCreate(false);
             load();
@@ -66,6 +72,7 @@ export function AdminUsersPage() {
               <th className="px-4 py-3">Benutzername</th>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Rolle</th>
+              <th className="px-4 py-3">Standort</th>
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
@@ -77,6 +84,7 @@ export function AdminUsersPage() {
                   <td className="px-4 py-2">{u.username}</td>
                   <td className="px-4 py-2">{u.full_name}</td>
                   <td className="px-4 py-2">{roleLabels[u.role] ?? u.role}</td>
+                  <td className="px-4 py-2 text-slate-500">{u.location_name ?? '—'}</td>
                   <td className="px-4 py-2">
                     <button
                       onClick={() => toggleActive(u)}
@@ -102,13 +110,23 @@ export function AdminUsersPage() {
   );
 }
 
-function CreateUserForm({ onCreated }: { onCreated: () => void }) {
+function CreateUserForm({
+  locations,
+  onCreated,
+}: {
+  locations: Location[];
+  onCreated: () => void;
+}) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'cashier' | 'admin'>('cashier');
+  const [locationId, setLocationId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const locationRequired = role === 'cashier';
+  const locationMissing = locationRequired && !locationId;
 
   async function handleSubmit() {
     setError(null);
@@ -119,11 +137,13 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
         password,
         fullName: fullName.trim(),
         role,
+        locationId: locationId ? Number(locationId) : null,
       });
       setUsername('');
       setPassword('');
       setFullName('');
       setRole('cashier');
+      setLocationId('');
       onCreated();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Fehler beim Anlegen.');
@@ -138,7 +158,7 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
       {error && (
         <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <input
           placeholder="Benutzername"
           value={username}
@@ -166,10 +186,25 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
           <option value="cashier">Kassierer</option>
           <option value="admin">Admin</option>
         </select>
+        <select
+          value={locationId}
+          onChange={(e) => setLocationId(e.target.value)}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="">{locationRequired ? 'Standort wählen…' : 'Kein Standort'}</option>
+          {locations.map((loc) => (
+            <option key={loc.id} value={loc.id}>
+              {loc.name}
+            </option>
+          ))}
+        </select>
       </div>
+      {locationRequired && (
+        <p className="mt-2 text-xs text-slate-400">Kassierer benötigen einen Standort.</p>
+      )}
       <button
         onClick={handleSubmit}
-        disabled={submitting || !username.trim() || !password || !fullName.trim()}
+        disabled={submitting || !username.trim() || !password || !fullName.trim() || locationMissing}
         className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {submitting ? 'Wird angelegt…' : 'Anlegen'}

@@ -18,7 +18,7 @@ const createReturnSchema = z.object({
 router.post('/', async (req, res, next) => {
   try {
     const { saleId, items, refundMethod } = createReturnSchema.parse(req.body);
-    const result = await createReturn(req.user!.userId, saleId, items, refundMethod);
+    const result = await createReturn(req.user!.userId, req.user!.locationId, saleId, items, refundMethod);
     res.status(201).json(result);
   } catch (err) {
     next(err);

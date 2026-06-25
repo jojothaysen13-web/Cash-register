@@ -8,6 +8,7 @@ import type { ReportSummary } from '../../types';
 const methodLabels: Record<string, string> = {
   cash: 'Bargeld',
   card: 'Karte',
+  mobile: 'Mobile/Wallet',
   voucher: 'Gutschein',
 };
 
@@ -59,13 +60,31 @@ export function AdminDashboardPage() {
               )}
             </ul>
           </div>
+
+          <div className="mb-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h3 className="mb-3 text-sm font-medium text-slate-500">Nach Standort</h3>
+            <ul className="divide-y divide-slate-100">
+              {report.byLocation.map((l) => (
+                <li key={l.locationId} className="flex justify-between py-2 text-sm">
+                  <span>
+                    {l.locationName} ({l.saleCount}×)
+                  </span>
+                  <span className="font-medium">{formatCents(l.totalCents)}</span>
+                </li>
+              ))}
+              {report.byLocation.length === 0 && (
+                <li className="py-2 text-sm text-slate-400">Keine Standorte.</li>
+              )}
+            </ul>
+          </div>
         </>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <NavCard to="/admin/products" label="Produkte" />
         <NavCard to="/admin/users" label="Benutzer" />
         <NavCard to="/admin/customers" label="Kunden" />
+        <NavCard to="/admin/locations" label="Standorte" />
         <NavCard to="/admin/reports" label="Berichte" />
       </div>
     </div>

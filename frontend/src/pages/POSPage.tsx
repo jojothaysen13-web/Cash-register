@@ -113,6 +113,11 @@ export function POSPage() {
         <BrandMark tag="Kasse" />
         <div className="flex items-center gap-4 text-sm">
           <span className="text-slate-500">{user?.fullName}</span>
+          {user?.locationName && (
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+              {user.locationName}
+            </span>
+          )}
           <Link to="/returns" className="text-blue-600 hover:underline">
             Rückgabe
           </Link>
